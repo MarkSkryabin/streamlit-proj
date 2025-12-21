@@ -1,20 +1,20 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-from current_weather import get_weather_sequential
+import asyncio
+from current_weather import *
 from analysis import *
 
-st.title("🌤 Анализ погодных данных")
-st.header("1. Загрузка исторических данных")
+st.title("Анализ погодных данных")
+st.header("Загрузка исторических данных")
 
 uploaded_file = st.file_uploader("Загрузите файл с историческими данными (CSV)",
                                  type=["csv"])
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.success("Файл успешно загружен")
-    st.dataframe(df.head())
+    st.dataframe(df)
 
-st.header("2. Выбор города")
+st.header("Выбор города")
 
 cities = ["New York", "London", "Paris", "Tokyo", "Moscow", "Sydney",
           "Berlin", "Beijing", "Rio de Janeiro", "Dubai", "Los Angeles",
@@ -23,7 +23,7 @@ cities = ["New York", "London", "Paris", "Tokyo", "Moscow", "Sydney",
 city = st.selectbox("Выберите город:", cities)
 st.write("Выбранный город:", city)
 
-st.header("3. API-ключ OpenWeatherMap")
+st.header("API-ключ OpenWeatherMap")
 
 with st.form("api_key_form"):
     api_key = st.text_input("Введите API-ключ OpenWeatherMap",
@@ -32,7 +32,15 @@ with st.form("api_key_form"):
 
 if submit_button:
     if api_key:
+        # синхронное получение погоды
         res = get_weather_sequential(city, api_key)
+        # асинхронное получение погоды
+        res_a = asyncio.run(get_weather_async(city, api_key))
+
+        # эксперименты с несколькими запросами
+        async_time = asyncio.run(experiment_async(city, api_key))
+        seq_time = experiment_sequential(city, api_key)
+
         if type(res) != str:
             try:
                 result_df, t_seq, t_par = analyze_city_temperature(df=df,
@@ -43,11 +51,15 @@ if submit_button:
 
                 # вывод статистики, графиков и проверки на аномальность
                 graphics(result_df, res[1])
-                st.success(res[0])
-                st.write('Время запроса:', round(res[2], 5), 'сек')
+                st.success(res_a[0])
+                st.write('Время запроса (синхронная функция):', round(res[2], 5), 'сек')
+                st.write('Время запроса (асинхронная функция):', round(res_a[2], 5), 'сек')
+                st.write('Несколько запросов (синхронная функция):', seq_time, 'сек')
+                st.write('Несколько запросов (асинхронная функция):', async_time, 'сек')
 
-                st.write(f"Аномалии")
+                st.subheader(f"Аномалии")
                 st.dataframe(result_df[result_df["is_anomaly"]])
+
             except NameError:
                 st.error("Загрузите файл с историческими данными")
 

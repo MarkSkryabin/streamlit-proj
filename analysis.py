@@ -3,17 +3,13 @@ import streamlit as st
 from concurrent.futures import ThreadPoolExecutor
 import pandas as pd
 import time
-import matplotlib.pyplot as plt
 from datetime import datetime
-import plotly.express as px
 import plotly.graph_objects as go
 
 
 def process_season(season_df: pd.DataFrame) -> pd.DataFrame:
-    stats = {
-        "mean_temp": season_df["temperature"].mean(),
-        "std_temp": season_df["temperature"].std()
-    }
+    stats = {"mean_temp": season_df["temperature"].mean(),
+             "std_temp": season_df["temperature"].std()}
 
     season_df = season_df.copy()
     season_df["mean_temp"] = stats["mean_temp"]
@@ -27,6 +23,7 @@ def process_season(season_df: pd.DataFrame) -> pd.DataFrame:
     return season_df
 
 
+@st.cache_data
 def analyze_city_temperature(
         df: pd.DataFrame,
         city_name: str,
@@ -45,14 +42,13 @@ def analyze_city_temperature(
     - время параллельного выполнения
     """
 
-    # ---------- загрузка ----------
     df["timestamp"] = pd.to_datetime(df["timestamp"])
 
     # фильтрация по городу
     df = df[df["city"] == city_name].copy()
     df = df.sort_values("timestamp")
 
-    # ---------- 1. последовательный анализ ----------
+    # последовательный анализ
     start = time.time()
 
     # скользящее среднее
@@ -117,8 +113,8 @@ def get_season(dt):
 
 
 def graphics(result_df, current_data):
-    """ Функция для вывода описательной статистики
-    и визуализаций по обработанным данным
+    """ Функция для вывода описательной статистики,
+    визуализаций по обработанным данным и проверки на аномальность
     :param result_df: pd.DataFrame с результатами анализа
     :param current_data: текущие данные
     """
@@ -213,5 +209,4 @@ def graphics(result_df, current_data):
         st.success(f'Температура в пределах нормы для сезона {current_season}')
     else:
         st.error(f'Аномальная температура для сезона {current_season}')
-    st.write(f'Максимум нормы {round(upper, 3)}°C')
-    st.write(f'Минимум нормы {round(lower, 3)}°C')
+    st.write(f'Ожидаемый диапазон ({current_season}) от {round(lower, 3)}°C до {round(upper, 3)}°C')
