@@ -5,9 +5,6 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 
 
-API_KEY = '596f3686e5d2ad133470311661883510'
-
-
 def get_weather_sequential(city, api_key):
     start_time = time.time()
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={api_key}&units=metric"
